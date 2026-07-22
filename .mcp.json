@@ -10,6 +10,13 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=sulwgatxneovzvsfbwzt"
+    },
+    "motion": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@pavui/motion-ui-mcp-server"
+      ]
     }
   }
 }

@@ -209,28 +209,83 @@ export function microTap(reduced: Reduced): Transition {
 
 export function loginLogo(reduced: Reduced): Variants {
   return {
-    hidden: { opacity: 0, scale: reduced ? 1 : 0.7, y: reduced ? 0 : -8 },
+    hidden: { opacity: 0, y: reduced ? 0 : -20, rotate: reduced ? 0 : -6 },
     show: {
       opacity: 1,
-      scale: 1,
       y: 0,
+      rotate: 0,
       transition: reduced
         ? REDUCED_TRANSITION
-        : { duration: 0.4, ease: EASE_PREMIUM },
+        : { type: "spring", stiffness: 300, damping: 20, mass: 0.7 },
+    },
+  }
+}
+
+/**
+ * Wraps the login stage (the perspective container for the split panels).
+ * Only fades in — all the motion the user actually sees comes from the two
+ * child columns (`splitPanelLeft`/`splitPanelRight`) converging on it.
+ */
+export function loginStageIn(reduced: Reduced): Variants {
+  return {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: reduced ? REDUCED_TRANSITION : { duration: 0.25, ease: "easeOut" },
+    },
+  }
+}
+
+/**
+ * Split-screen entrance: the form and brand columns slide in from opposite
+ * viewport edges with a slight 3D tilt (rotateY), converging on the card
+ * like sliding doors. Requires a `perspective` style on a shared ancestor
+ * (see `loginStageIn`'s usage in app/login/page.tsx) for the tilt to read.
+ */
+export function splitPanelLeft(reduced: Reduced, delay = 0.05): Variants {
+  return {
+    hidden: { opacity: 0, x: reduced ? 0 : -110, rotateY: reduced ? 0 : -12 },
+    show: {
+      opacity: 1,
+      x: 0,
+      rotateY: 0,
+      transition: reduced
+        ? REDUCED_TRANSITION
+        : { type: "spring", stiffness: 170, damping: 22, mass: 1, delay },
+    },
+  }
+}
+
+export function splitPanelRight(reduced: Reduced, delay = 0.05): Variants {
+  return {
+    hidden: { opacity: 0, x: reduced ? 0 : 110, rotateY: reduced ? 0 : 12 },
+    show: {
+      opacity: 1,
+      x: 0,
+      rotateY: 0,
+      transition: reduced
+        ? REDUCED_TRANSITION
+        : { type: "spring", stiffness: 170, damping: 22, mass: 1, delay },
     },
   }
 }
 
 export function loginCard(reduced: Reduced, delay = 0.1): Variants {
   return {
-    hidden: { opacity: 0, y: reduced ? 0 : 20, scale: reduced ? 1 : 0.98 },
+    hidden: {
+      opacity: 0,
+      y: reduced ? 0 : 20,
+      scale: reduced ? 1 : 0.98,
+      filter: reduced ? "blur(0px)" : "blur(6px)",
+    },
     show: {
       opacity: 1,
       y: 0,
       scale: 1,
+      filter: "blur(0px)",
       transition: reduced
         ? REDUCED_TRANSITION
-        : { duration: 0.45, delay, ease: EASE_PREMIUM },
+        : { duration: 0.5, delay, ease: EASE_PREMIUM },
     },
   }
 }
@@ -255,6 +310,115 @@ export function loginField(reduced: Reduced): Variants {
       transition: reduced
         ? REDUCED_TRANSITION
         : { duration: 0.3, ease: EASE_PREMIUM },
+    },
+  }
+}
+
+/**
+ * Ambient depth glows behind the split-screen login stage: two independent
+ * blobs drift on offset loops (by `index`) so they never sync into one
+ * pulse, giving the converging panels a sense of parallax behind them.
+ * Static (no loop) when reduced.
+ */
+export function pageGlowDrift(reduced: Reduced, index = 0): Variants {
+  if (reduced) {
+    return { hidden: { opacity: 0.4, x: 0, y: 0, scale: 1 }, show: { opacity: 0.4, x: 0, y: 0, scale: 1 } }
+  }
+  const duration = 14 + index * 4
+  const dx = 40 + index * 20
+  const dy = 30 + index * 15
+  return {
+    hidden: { opacity: 0, x: 0, y: 0, scale: 0.9 },
+    show: {
+      opacity: [0, 0.45, 0.3, 0.45],
+      x: [0, dx, -dx * 0.5, 0],
+      y: [0, -dy, dy * 0.6, 0],
+      scale: [0.9, 1.08, 1, 1.08],
+      transition: {
+        duration,
+        delay: index * 1.2,
+        repeat: Infinity,
+        ease: "easeInOut",
+      },
+    },
+  }
+}
+
+/**
+ * Slow, asynchronous drift for the brand panel's blurred blobs. `index`
+ * varies duration/delay so multiple blobs don't sync up into one pulse.
+ * `baseDelay` pushes the whole loop back so blobs only start once the
+ * split panel itself has finished sliding in.
+ */
+export function brandBlob(reduced: Reduced, index = 0, baseDelay = 0): Variants {
+  if (reduced) {
+    return { hidden: { opacity: 0.5, x: 0, y: 0, scale: 1 }, show: { opacity: 0.5, x: 0, y: 0, scale: 1 } }
+  }
+  const duration = 12 + index * 3
+  const dx = 18 + index * 6
+  const dy = 14 + index * 5
+  return {
+    hidden: { opacity: 0, x: 0, y: 0, scale: 0.9 },
+    show: {
+      opacity: [0, 0.6, 0.6, 0.6],
+      x: [0, dx, -dx * 0.6, 0],
+      y: [0, -dy, dy * 0.7, 0],
+      scale: [0.9, 1.05, 0.97, 0.9],
+      transition: {
+        duration,
+        delay: baseDelay + index * 0.6,
+        repeat: Infinity,
+        ease: "easeInOut",
+      },
+    },
+  }
+}
+
+export function brandPanelReveal(reduced: Reduced, delay = 0.55): Variants {
+  return {
+    hidden: {},
+    show: {
+      transition: reduced
+        ? REDUCED_TRANSITION
+        : { delayChildren: delay, staggerChildren: 0.1 },
+    },
+  }
+}
+
+export function brandPanelItem(reduced: Reduced): Variants {
+  return {
+    hidden: { opacity: 0, y: reduced ? 0 : 12 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: reduced
+        ? REDUCED_TRANSITION
+        : { duration: 0.4, ease: EASE_PREMIUM },
+    },
+  }
+}
+
+/**
+ * Named rest/hover/tap variants for the login submit button — unlike the
+ * shared hoverScaleSm/tapScaleSm objects, these use variant keys so the
+ * nested sheen span (submitSheenVariants) inherits the hover state instead
+ * of needing its own whileHover trigger.
+ */
+export function submitButtonVariants(reduced: Reduced): Variants {
+  const transition = microTap(reduced)
+  return {
+    rest: { scale: 1, transition },
+    hover: { scale: reduced ? 1 : 1.02, transition },
+    tap: { scale: reduced ? 1 : 0.96, transition },
+  }
+}
+
+export function submitSheenVariants(reduced: Reduced): Variants {
+  return {
+    rest: { x: "-120%" },
+    hover: {
+      x: "120%",
+      transition: reduced ? REDUCED_TRANSITION : { duration: 0.6, ease: "easeInOut" },
     },
   }
 }
